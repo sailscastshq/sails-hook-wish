@@ -1,6 +1,6 @@
 # wish
 
-wish is an OAuth Sails hook that you wish exists for Sails. wish provides a simple, convenient way to authenticate with OAuth providers. wish currently supports authentication via GitHub
+wish is the OAuth Sails hook you wish(pun intended) exists for Sails. wish provides a simple, convenient way to authenticate with OAuth providers. wish currently supports authentication via GitHub
 
 ## Official documentation
 

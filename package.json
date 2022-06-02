@@ -1,4 +1,11 @@
 {
+  "name": "sails-hook-wish",
+  "version": "0.0.1",
+  "description": "The OAuth hook you wish exists for Sails",
+  "keywords": [],
+  "sails": {
+    "isHook": true
+  },
   "devDependencies": {
     "prettier": "^2.6.2"
   },

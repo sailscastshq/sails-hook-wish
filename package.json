@@ -14,6 +14,6 @@
     "@sailscasts/sails-hook-node-fetch": "^0.0.3"
   },
   "author": "Kelvin Omereshone<kelvin@sailscasts.com>",
-  "license": "MIT",
+  "license": "MIT"
 
 }

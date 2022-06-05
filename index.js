@@ -24,6 +24,7 @@ module.exports = function defineWishHook(sails) {
     },
     initialize: async function () {
       sails.log.info('Initializing custom hook (`wish`)')
+      sails.wish = this
     },
     provider: function (value) {
       console.log

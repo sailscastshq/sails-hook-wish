@@ -62,12 +62,12 @@ module.exports = function defineWishHook(sails) {
     },
     user: async function (code) {
       if (!code) throw Error(`${code} is not a valid code`)
-      const clientId =
-        sails.config[provider].clientId ||
-        sails.config.custom[provider].clientId
-      const clientSecret =
-        sails.config[provider].clientSecret ||
-        sails.config.custom[provider].clientSecret
+      const clientId = sails.config[provider]
+        ? sails.config[provider].clientId
+        : sails.config.custom[provider].clientId
+      const clientSecret = sails.config[provider]
+        ? sails.config[provider].clientSecret
+        : sails.config.custom[provider].clientSecret
 
       try {
         const response = await sails.helpers.fetch(

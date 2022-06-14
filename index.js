@@ -41,7 +41,10 @@ module.exports = function defineWishHook(sails) {
       const scope = sails.config.wish[provider].scopes.join(
         sails.config.wish.scopeSeparator
       )
-      const redirectUrl = `https://github.com/login/oauth/authorize?scope=${scope}&client_id=${sails.config.github.clientId}`
+      const clientId = sails.config[provider]
+        ? sails.config[provider].clientId
+        : sails.config.custom[provider].clientId
+      const redirectUrl = `https://github.com/login/oauth/authorize?scope=${scope}&client_id=${clientId}`
       return redirectUrl
     },
     userFromToken: async function (token) {

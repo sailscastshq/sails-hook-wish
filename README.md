@@ -3,10 +3,10 @@
 wish is the OAuth Sails hook you wish(pun intended) exists for Sails. wish provides a simple, convenient way to authenticate with OAuth providers. wish currently supports authentication via GitHub
 
 ## Installation
-In your Sails project run:
+In your Sails project run the below command to install wish and it's node-fetch peer-dependency:
 
 ```sh
-npm i --save sails-hook-wish
+npm i --save sails-hook-wish @sailscasts/sails-hook-node-fetch
 ```
 
 ## Basic usage

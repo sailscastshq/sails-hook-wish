@@ -1,6 +1,6 @@
 {
   "name": "sails-hook-wish",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "The OAuth hook you wish exists for Sails",
   "keywords": [],
   "sails": {

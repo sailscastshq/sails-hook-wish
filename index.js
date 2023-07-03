@@ -1,5 +1,11 @@
 /** @typedef {'github' | 'google'} Provider */
 /**
+ * @typedef {Object} WishConfig
+ * @property {WishProvider} github
+ * @property {WishProvider} google
+ */
+
+/**
  * @typedef {Object} WishProvider
  * @property {string} scopeSeparator
  * @property {string[]} scopes
@@ -35,7 +41,7 @@ module.exports = function defineWishHook(sails) {
      */
     defaults: {
       /**
-       * @type {Object<string, WishProvider>}
+       * @type {WishConfig}
        */
       wish: {
         github: {

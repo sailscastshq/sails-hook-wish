@@ -19,7 +19,7 @@ npm i --save sails-hook-wish @sailscasts/sails-hook-node-fetch
 
 To setup up a GitHub OAuth for your app, `wish` expects the following key and property in either `config/local.js` or `config/custom.js`. For example you can have a development GitHub clientId and clientSecret in `config/local.js`
 
-> Do make sure to get the needed `clientId` and `clientSecret` credentials from GitHub. You can see here for instructions on how to get those credentials
+> Do make sure to get the needed `clientId` and `clientSecret` credentials from GitHub. You can see [here](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) for instructions on how to get those credentials
 
 ```js
 github: {
@@ -165,9 +165,9 @@ There you have it, a GitHub OAuth flow with just two routes and one line of code
 
 ## Google
 
-To setup up a Google OAuth for your app, `wish` expects the following key and property in either `config/local.js` or `config/custom.js`. For example you can have a development GitHub `clientId` and `clientSecret` in `config/local.js`
+To setup up a Google OAuth for your app, `wish` expects the following key and property in either `config/local.js` or `config/custom.js`. For example you can have a development Google `clientId` and `clientSecret` in `config/local.js`
 
-> Do make sure to get the needed `clientId` and `clientSecret` credentials from the Google Console. You can see here for instructions on how to get those credentials
+> Do make sure to get the needed `clientId` and `clientSecret` credentials from the Google Console. You can see [here](https://developers.google.com/identity/protocols/oauth2) for instructions on how to get those credentials
 
 ```js
 google: {
@@ -274,7 +274,7 @@ module.exports = {
 
       // Checks if the user email has changed since last log in
       // And then update the email change candidate which will be used be used to prompt the user to update their email
-      if (!wasCreated && user.email !== githubUser.email) {
+      if (!wasCreated && user.email !== googleUser.email) {
         await User.updateOne({ id: user.id }).set({
           emailChangeCandidate: googleUser.email,
         })
@@ -288,7 +288,7 @@ module.exports = {
 
       if (!wasCreated && user.googleAvatarUrl !== googleUser.picture) {
         await User.updateOne({ id: user.id }).set({
-          githubAvatarUrl: githubUser.avatar_url,
+          googleAvatarUrl: githubUser.avatar_url,
         })
       }
 

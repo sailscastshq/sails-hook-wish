@@ -263,8 +263,7 @@ module.exports = {
         id: sails.helpers.getUuid(),
         googleId: googleUser.id,
         email: googleUser.email,
-        firstName: googleUser.given_name,
-        lastName: googleUser.family_name,
+        name: googleUser.name,
         googleAvatarUrl: googleUser.picture,
         googleAccessToken: googleUser.accessToken,
         googleIdToken: googleUser.idToken,
@@ -288,7 +287,7 @@ module.exports = {
 
       if (!wasCreated && user.googleAvatarUrl !== googleUser.picture) {
         await User.updateOne({ id: user.id }).set({
-          googleAvatarUrl: githubUser.avatar_url,
+          googleAvatarUrl: googleUser.picture,
         })
       }
 

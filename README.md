@@ -312,7 +312,7 @@ module.exports = {
 }
 ```
 
-There you have it, a Google OAuth flow with just two routes and one line of code each to both redirect to GitHub and get the OAuth user details.
+There you have it, a Google OAuth flow with just two routes and one line of code each to both redirect to Google and get the OAuth user details.
 
 ## License
 

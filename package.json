@@ -7,13 +7,13 @@
     "isHook": true
   },
   "devDependencies": {
+    "@types/node": "^20.3.3",
     "prettier": "^2.6.2"
   },
   "peerDependencies": {
-    "sails": "^1.5.2",
-    "@sailscasts/sails-hook-node-fetch": "^0.0.3"
+    "@sailscasts/sails-hook-node-fetch": "^0.0.3",
+    "sails": "^1.5.2"
   },
   "author": "Kelvin Omereshone<kelvin@sailscasts.com>",
   "license": "MIT"
-
 }

@@ -1,19 +1,34 @@
 {
   "name": "sails-hook-wish",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "The OAuth hook you wish exists for Sails",
-  "keywords": [],
+  "keywords": [
+    "sails oauth",
+    "github oauth",
+    "google oauth",
+    "sails hook"
+  ],
   "sails": {
     "isHook": true
   },
   "devDependencies": {
+    "@commitlint/cli": "^17.6.6",
+    "@commitlint/config-conventional": "^17.6.6",
+    "@types/node": "^20.3.3",
+    "husky": "^8.0.3",
+    "lint-staged": "^13.2.3",
     "prettier": "^2.6.2"
   },
   "peerDependencies": {
-    "sails": "^1.5.2",
-    "@sailscasts/sails-hook-node-fetch": "^0.0.3"
+    "@sailscasts/sails-hook-node-fetch": "^0.0.3",
+    "sails": "^1.5.2"
   },
   "author": "Kelvin Omereshone<kelvin@sailscasts.com>",
-  "license": "MIT"
-
+  "license": "MIT",
+  "scripts": {
+    "prepare": "husky install"
+  },
+  "lint-staged": {
+    "**/*": "prettier --write --ignore-unknown"
+  }
 }

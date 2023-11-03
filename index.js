@@ -3,7 +3,11 @@
  * @typedef {Object} WishConfig
  * @property {WishProvider} github
  * @property {WishProvider} google
+ * @property {WishProvider} twitter
  */
+
+const generateCodeChallenge = require('./utils/generate-code-challenge')
+const generateRandomString = require('./utils/generate-random-string')
 
 /**
  * @typedef {Object} WishProvider
@@ -59,6 +63,12 @@ module.exports = function defineWishHook(sails) {
           tokenUrl: 'https://oauth2.googleapis.com/token',
           userUrl: 'https://www.googleapis.com/oauth2/v2/userinfo?alt=json',
         },
+        twitter: {
+          scopeSeparator: ' ',
+          scopes: ['users.read', 'tweet.read'],
+          tokenUrl: 'https://api.twitter.com/2/oauth2/token',
+          userUrl: 'https://api.twitter.com/2/users/me',
+        },
       },
     },
     initialize: async function () {
@@ -85,9 +95,10 @@ module.exports = function defineWishHook(sails) {
      * @returns { string } redirectUrl
      */
     redirect: function () {
-      var redirectUrl
+      let redirectUrl
+      let queryParams
       switch (provider) {
-        case 'github':
+        case 'github': {
           const githubScope = sails.config.wish[provider].scopes.join(
             sails.config.wish[provider].scopeSeparator
           )
@@ -96,14 +107,15 @@ module.exports = function defineWishHook(sails) {
             : sails.config.custom[provider].clientId
           redirectUrl = `https://github.com/login/oauth/authorize?scope=${githubScope}&client_id=${githubClientId}`
           break
-        case 'google':
+        }
+        case 'google': {
           const googleRedirectUrl = sails.config[provider]
             ? sails.config[provider].redirect
             : sails.config.custom[provider].redirect
           const googleClientId = sails.config[provider]
             ? sails.config[provider].clientId
             : sails.config.custom[provider].clientId
-          const queryParams = {
+          queryParams = {
             redirect_uri: googleRedirectUrl,
             client_id: googleClientId,
             access_type: 'offline',
@@ -116,8 +128,36 @@ module.exports = function defineWishHook(sails) {
           const qs = new URLSearchParams(queryParams)
           redirectUrl = `https://accounts.google.com/o/oauth2/v2/auth?${qs.toString()}`
           break
+        }
+        case 'twitter': {
+          const twitterRedirectUrl = sails.config[provider]
+            ? sails.config[provider].redirect
+            : sails.config.custom[provider].redirect
+          const twitterClientId = sails.config[provider]
+            ? sails.config[provider].clientId
+            : sails.config.custom[provider].clientId
+          const { codeChallenge, codeVerifier } = generateCodeChallenge()
+          console.log({ codeVerifier })
+          sails.wish._twitterCodeVerifier = codeVerifier
+          console.log(sails.wish._twitterCodeVerifier)
+          console.log(sails.wish)
+          const queryParams = {
+            redirect_uri: twitterRedirectUrl,
+            client_id: twitterClientId,
+            response_type: 'code',
+            scope: sails.config.wish[provider].scopes.join(
+              sails.config.wish[provider].scopeSeparator
+            ),
+            state: generateRandomString(),
+            code_challenge: codeChallenge,
+            code_challenge_method: 'S256',
+          }
+          console.log(queryParams)
+          const qs = new URLSearchParams(queryParams)
+          redirectUrl = `https://twitter.com/i/oauth2/authorize?${qs.toString()}`
+          break
+        }
       }
-
       return redirectUrl
     },
     /**
@@ -128,7 +168,7 @@ module.exports = function defineWishHook(sails) {
     userFromToken: async function ({ accessToken, idToken }) {
       if (!accessToken)
         throw Error(`${accessToken} is not a valid access token`)
-      var user
+      let user
       switch (provider) {
         case 'github':
           try {
@@ -170,15 +210,16 @@ module.exports = function defineWishHook(sails) {
     user: async function (code) {
       if (!code) throw Error(`${code} is not a valid code`)
 
-      var user
+      let user
       const clientId = sails.config[provider]
         ? sails.config[provider].clientId
         : sails.config.custom[provider].clientId
       const clientSecret = sails.config[provider]
         ? sails.config[provider].clientSecret
         : sails.config.custom[provider].clientSecret
+
       switch (provider) {
-        case 'github':
+        case 'github': {
           try {
             const response = await sails.helpers.fetch(
               `${sails.config.wish[provider].tokenUrl}?client_id=${clientId}&client_secret=${clientSecret}&code=${code}`,
@@ -196,7 +237,8 @@ module.exports = function defineWishHook(sails) {
             throw error
           }
           break
-        case 'google':
+        }
+        case 'google': {
           const queryParams = {
             code,
             client_id: clientId,
@@ -226,6 +268,45 @@ module.exports = function defineWishHook(sails) {
           } catch (error) {
             throw error
           }
+          break
+        }
+        case 'twitter': {
+          const basicAuthToken = Buffer.from(
+            `${clientId}:${clientSecret}`,
+            'utf8'
+          ).toString('base64')
+          const queryParams = {
+            code,
+            client_id: clientId,
+            code_verifier: sails.wish._twitterCodeVerifier,
+            grant_type: 'authorization_code',
+            redirect_uri: sails.config[provider]
+              ? sails.config[provider].redirect
+              : sails.config.custom[provider].redirect,
+          }
+          console.log(queryParams)
+          const qs = new URLSearchParams(queryParams)
+          try {
+            const response = await sails.helpers.fetch(
+              `${sails.config.wish[provider].tokenUrl}?${qs.toString()}`,
+              {
+                method: 'POST',
+                headers: {
+                  Accept: 'application/x-www-form-urlencoded',
+                  Authorization: `Basic ${basicAuthToken}`,
+                },
+              }
+            )
+            console.log(response)
+            return
+            const { access_token: accessToken } = response
+            user = await this.userFromToken({ accessToken })
+            user.accessToken = accessToken
+          } catch (error) {
+            throw error
+          }
+          break
+        }
         default:
           break
       }

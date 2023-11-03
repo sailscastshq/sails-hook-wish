@@ -1,4 +1,4 @@
-/** @typedef {'github' | 'google'} Provider */
+/** @typedef {'github' | 'google' | 'twitter'} Provider */
 /**
  * @typedef {Object} WishConfig
  * @property {WishProvider} github
@@ -34,7 +34,7 @@ module.exports = function defineWishHook(sails) {
   /**
    * @type {Provider[]}
    */
-  const providers = ['github', 'google']
+  const providers = ['github', 'google', 'twitter']
   return {
     /**
      * Runs when this Sails app loads/lifts.

@@ -30,6 +30,10 @@
     "@sailscasts/sails-hook-node-fetch": "^0.0.3",
     "sails": "^1.5.2"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sailscastshq/sails-hook-wish.git"
+  },
   "author": "Kelvin Omereshone<kelvin@sailscasts.com>",
   "license": "MIT",
   "scripts": {

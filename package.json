@@ -11,12 +11,8 @@
   "sails": {
     "isHook": true
   },
-   "bugs": {
+  "bugs": {
     "url": "https://github.com/sailscastshq/sails-hook-wish/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/sailscastshq/sails-hook-wish.git"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.6.6",

@@ -10,7 +10,8 @@
     "sails hook"
   ],
   "sails": {
-    "isHook": true
+    "isHook": true,
+    "hookName": "wish"
   },
   "bugs": {
     "url": "https://github.com/sailscastshq/sails-hook-wish/issues"

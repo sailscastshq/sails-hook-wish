@@ -2,6 +2,7 @@
   "name": "sails-hook-wish",
   "version": "0.0.7",
   "description": "The OAuth hook you wish exists for Sails",
+  "main": "index.js",
   "keywords": [
     "sails oauth",
     "github oauth",

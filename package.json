@@ -32,6 +32,7 @@
     "type": "git",
     "url": "git+https://github.com/sailscastshq/sails-hook-wish.git"
   },
+  "homepage": "https://github.com/sailscastshq/sails-hook-wish#readme",
   "author": "Kelvin Omereshone<kelvin@sailscasts.com>",
   "license": "MIT",
   "scripts": {

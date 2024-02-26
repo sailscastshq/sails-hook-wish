@@ -2,6 +2,7 @@
   "name": "sails-hook-wish",
   "version": "0.0.7",
   "description": "The OAuth hook you wish exists for Sails",
+  "main": "index.js",
   "keywords": [
     "sails oauth",
     "github oauth",
@@ -10,6 +11,9 @@
   ],
   "sails": {
     "isHook": true
+  },
+  "bugs": {
+    "url": "https://github.com/sailscastshq/sails-hook-wish/issues"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.6.6",
@@ -22,6 +26,10 @@
   "peerDependencies": {
     "@sailscasts/sails-hook-node-fetch": "^0.0.3",
     "sails": "^1.5.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sailscastshq/sails-hook-wish.git"
   },
   "author": "Kelvin Omereshone<kelvin@sailscasts.com>",
   "license": "MIT",

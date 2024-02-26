@@ -147,18 +147,14 @@ module.exports = function defineWishHook(sails) {
         case 'google':
           if (!idToken) throw Error(`${idToken} is not a valid id_token`)
           try {
-            try {
-              user = await sails.helpers.fetch(
-                `${sails.config.wish[provider].userUrl}&access_token=${accessToken}`,
-                {
-                  headers: {
-                    Authorization: `Bearer ${idToken}`,
-                  },
-                }
-              )
-            } catch (error) {
-              throw error
-            }
+            user = await sails.helpers.fetch(
+              `${sails.config.wish[provider].userUrl}&access_token=${accessToken}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${idToken}`,
+                },
+              }
+            )
           } catch (error) {
             throw error
           }

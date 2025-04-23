@@ -40,5 +40,8 @@
   },
   "lint-staged": {
     "**/*": "prettier --write --ignore-unknown"
+  },
+  "dependencies": {
+    "sails-hook-wish": "file:/home/julius-koda/Desktop/JuliusFolder/sails-hook-wish"
   }
 }

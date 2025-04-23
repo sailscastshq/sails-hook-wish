@@ -1,8 +1,9 @@
-/** @typedef {'github' | 'google'} Provider */
+/** @typedef {'github' | 'google' | 'discord'} Provider */
 /**
  * @typedef {Object} WishConfig
  * @property {WishProvider} github
  * @property {WishProvider} google
+ * @property {WishProvider} discord
  */
 
 /**
@@ -34,7 +35,7 @@ module.exports = function defineWishHook(sails) {
   /**
    * @type {Provider[]}
    */
-  const providers = ['github', 'google']
+  const providers = ['github', 'google', 'discord']
   return {
     /**
      * Runs when this Sails app loads/lifts.
@@ -58,6 +59,12 @@ module.exports = function defineWishHook(sails) {
           ],
           tokenUrl: 'https://oauth2.googleapis.com/token',
           userUrl: 'https://www.googleapis.com/oauth2/v2/userinfo?alt=json',
+        },
+        discord: {
+          scopeSeparator: ' ',
+          scopes: ['identify', 'email'],
+          tokenUrl: 'https://discord.com/api/oauth2/token',
+          userUrl: 'https://discord.com/api/users/@me',
         },
       },
     },
@@ -116,6 +123,25 @@ module.exports = function defineWishHook(sails) {
           const qs = new URLSearchParams(queryParams)
           redirectUrl = `https://accounts.google.com/o/oauth2/v2/auth?${qs.toString()}`
           break
+        case 'discord':
+          const discordRedirectUrl = sails.config[provider]
+            ? sails.config[provider].redirect
+            : sails.config.custom[provider].redirect
+          const discordClientId = sails.config[provider]
+            ? sails.config[provider].clientId
+            : sails.config.custom[provider].clientId
+          const discordQueryParams = {
+            client_id: discordClientId,
+            redirect_uri: discordRedirectUrl,
+            response_type: 'code',
+            scope: sails.config.wish[provider].scopes.join(
+              sails.config.wish[provider].scopeSeparator
+            ),
+            prompt: 'consent',
+          }
+          const discordQs = new URLSearchParams(discordQueryParams)
+          redirectUrl = `https://discord.com/api/oauth2/authorize?${discordQs.toString()}`
+          break
       }
 
       return redirectUrl
@@ -152,6 +178,20 @@ module.exports = function defineWishHook(sails) {
               {
                 headers: {
                   Authorization: `Bearer ${idToken}`,
+                },
+              }
+            )
+          } catch (error) {
+            throw error
+          }
+          break
+        case 'discord':
+          try {
+            user = await sails.helpers.fetch(
+              sails.config.wish[provider].userUrl,
+              {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
                 },
               }
             )
@@ -226,6 +266,39 @@ module.exports = function defineWishHook(sails) {
           } catch (error) {
             throw error
           }
+        case 'discord':
+          const discordQueryParams = {
+            client_id: clientId,
+            client_secret: clientSecret,
+            grant_type: 'authorization_code',
+            code,
+            redirect_uri: sails.config[provider]
+              ? sails.config[provider].redirect
+              : sails.config.custom[provider].redirect,
+            scope: sails.config.wish[provider].scopes.join(
+              sails.config.wish[provider].scopeSeparator
+            ),
+          }
+          const discordQs = new URLSearchParams(discordQueryParams)
+
+          try {
+            const response = await sails.helpers.fetch(
+              `${sails.config.wish[provider].tokenUrl}`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: discordQs.toString(),
+              }
+            )
+            const { access_token: accessToken } = response
+            user = await this.userFromToken({ accessToken })
+            user.accessToken = accessToken
+          } catch (error) {
+            throw error
+          }
+          break
         default:
           break
       }

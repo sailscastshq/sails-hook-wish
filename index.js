@@ -266,6 +266,7 @@ module.exports = function defineWishHook(sails) {
           } catch (error) {
             throw error
           }
+          break
         case 'discord':
           const discordQueryParams = {
             client_id: clientId,

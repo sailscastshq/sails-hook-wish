@@ -317,7 +317,7 @@ There you have it, a Google OAuth flow with just two routes and one line of code
 
 ## Discord
 
-To setup up a Discord OAuth for your app, `wish` expects the following key and property in either `config/local.js` or `config/custom.js`. For example you can have a development Google `clientId` and `clientSecret` in `config/local.js`
+To setup up a Discord OAuth for your app, `wish` expects the following key and property in either `config/local.js` or `config/custom.js`. For example you can have a development Discord `clientId` and `clientSecret` in `config/local.js`
 
 > Do make sure to get the needed `clientId` and `clientSecret` credentials from Discord. You can see [here](https://discordjs.guide/oauth2) for instructions on how to get those credentials
 
@@ -374,7 +374,7 @@ module.exports = {
 }
 ```
 
-Notice the redirect is a one-line of code and when this action is called, it will redirect to GitHub to begin the OAuth process.
+Notice the redirect is a one-line of code and when this action is called, it will redirect to Discord to begin the OAuth process.
 
 ## The callback
 

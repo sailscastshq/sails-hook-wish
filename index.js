@@ -1,12 +1,22 @@
 /** @typedef {'github' | 'google'} Provider */
 /**
  * @typedef {Object} WishConfig
- * @property {WishProvider} github
- * @property {WishProvider} google
+ * @property {Provider} [provider] - Default provider for single-provider apps
+ * @property {Object} providers - Provider configurations
+ * @property {WishProviderConfig} [github] - GitHub credentials (from local.js)
+ * @property {WishProviderConfig} [google] - Google credentials (from local.js)
  */
 
 /**
- * @typedef {Object} WishProvider
+ * @typedef {Object} WishProviderConfig
+ * @property {string} clientId
+ * @property {string} clientSecret
+ * @property {string} redirect
+ * @property {string[]} [scopes]
+ */
+
+/**
+ * @typedef {Object} WishProviderDefaults
  * @property {string} scopeSeparator
  * @property {string[]} scopes
  * @property {string} tokenUrl
@@ -14,14 +24,9 @@
  */
 
 /**
- *
- * @param {*} sails
- * @returns
- */
-/**
  * wish hook
  *
- * @description :: A hook definition.  Extends Sails by adding shadow routes, implicit actions, and/or initialization logic.
+ * @description :: A hook definition. Extends Sails by adding shadow routes, implicit actions, and/or initialization logic.
  * @docs        :: https://sailsjs.com/docs/concepts/extending-sails/hooks
  */
 
@@ -29,12 +34,36 @@ module.exports = function defineWishHook(sails) {
   /**
    * @type {Provider}
    */
-  let provider
+  let currentProvider
 
   /**
    * @type {Provider[]}
    */
-  const providers = ['github', 'google']
+  const supportedProviders = ['github', 'google']
+
+  /**
+   * Get the active provider (explicitly set or default from config)
+   * @returns {Provider}
+   */
+  function getProvider() {
+    if (currentProvider) return currentProvider
+    if (sails.config.wish.provider) return sails.config.wish.provider
+    throw Error(
+      'No provider specified. Either set a default provider in config/wish.js or call .provider() first.'
+    )
+  }
+
+  /**
+   * Get provider configuration (merged from defaults and user config)
+   * @param {Provider} providerName
+   * @returns {Object}
+   */
+  function getProviderConfig(providerName) {
+    const defaults = sails.config.wish.providers[providerName]
+    const credentials = sails.config.wish[providerName] || {}
+    return { ...defaults, ...credentials }
+  }
+
   return {
     /**
      * Runs when this Sails app loads/lifts.
@@ -44,74 +73,73 @@ module.exports = function defineWishHook(sails) {
        * @type {WishConfig}
        */
       wish: {
-        github: {
-          scopeSeparator: ',',
-          scopes: ['user:email'],
-          tokenUrl: 'https://github.com/login/oauth/access_token',
-          userUrl: 'https://api.github.com/user',
-        },
-        google: {
-          scopeSeparator: ' ',
-          scopes: [
-            'https://www.googleapis.com/auth/userinfo.profile',
-            'https://www.googleapis.com/auth/userinfo.email',
-          ],
-          tokenUrl: 'https://oauth2.googleapis.com/token',
-          userUrl: 'https://www.googleapis.com/oauth2/v2/userinfo?alt=json',
+        // Default provider (optional) - set in config/wish.js for single-provider apps
+        provider: undefined,
+
+        // Provider defaults with sensible configurations
+        providers: {
+          github: {
+            scopeSeparator: ',',
+            scopes: ['user:email'],
+            tokenUrl: 'https://github.com/login/oauth/access_token',
+            userUrl: 'https://api.github.com/user',
+          },
+          google: {
+            scopeSeparator: ' ',
+            scopes: [
+              'https://www.googleapis.com/auth/userinfo.profile',
+              'https://www.googleapis.com/auth/userinfo.email',
+            ],
+            tokenUrl: 'https://oauth2.googleapis.com/token',
+            userUrl: 'https://www.googleapis.com/oauth2/v2/userinfo?alt=json',
+          },
         },
       },
     },
+
     initialize: async function () {
       sails.log.info('Initializing custom hook (`wish`)')
       sails.wish = this
     },
+
     /**
-     * Set the Oauth provider
+     * Set the OAuth provider for chained calls
      * @param {Provider} value
      * @returns {Object} wish
      */
     provider: function (value) {
-      if (!providers.includes(value))
+      if (!supportedProviders.includes(value))
         throw Error(
-          `${value} is not a supported provider. Supported providers are ${providers.join(
-            ','
+          `${value} is not a supported provider. Supported providers are ${supportedProviders.join(
+            ', '
           )}`
         )
-      provider = value
+      currentProvider = value
       return this
     },
+
     /**
      * Redirects the user to the OAuth provider for authentication.
-     * @returns { string } redirectUrl
+     * @returns {string} redirectUrl
      */
     redirect: function () {
-      var redirectUrl
-      switch (provider) {
+      const providerName = getProvider()
+      const config = getProviderConfig(providerName)
+
+      let redirectUrl
+      switch (providerName) {
         case 'github':
-          const githubScope = sails.config.wish[provider].scopes.join(
-            sails.config.wish[provider].scopeSeparator
-          )
-          const githubClientId = sails.config[provider]
-            ? sails.config[provider].clientId
-            : sails.config.custom[provider].clientId
-          redirectUrl = `https://github.com/login/oauth/authorize?scope=${githubScope}&client_id=${githubClientId}`
+          const githubScope = config.scopes.join(config.scopeSeparator)
+          redirectUrl = `https://github.com/login/oauth/authorize?scope=${githubScope}&client_id=${config.clientId}`
           break
         case 'google':
-          const googleRedirectUrl = sails.config[provider]
-            ? sails.config[provider].redirect
-            : sails.config.custom[provider].redirect
-          const googleClientId = sails.config[provider]
-            ? sails.config[provider].clientId
-            : sails.config.custom[provider].clientId
           const queryParams = {
-            redirect_uri: googleRedirectUrl,
-            client_id: googleClientId,
+            redirect_uri: config.redirect,
+            client_id: config.clientId,
             access_type: 'offline',
             response_type: 'code',
             prompt: 'consent',
-            scope: sails.config.wish[provider].scopes.join(
-              sails.config.wish[provider].scopeSeparator
-            ),
+            scope: config.scopes.join(config.scopeSeparator),
           }
           const qs = new URLSearchParams(queryParams)
           redirectUrl = `https://accounts.google.com/o/oauth2/v2/auth?${qs.toString()}`
@@ -120,19 +148,24 @@ module.exports = function defineWishHook(sails) {
 
       return redirectUrl
     },
+
     /**
      * Get user with a valid OAuth access token
-     * @param {{ accessToken: string, idToken?}} option
-     * @returns {Promise} user
+     * @param {{ accessToken: string, idToken?: string }} options
+     * @returns {Promise<Object>} user
      */
     userFromToken: async function ({ accessToken, idToken }) {
       if (!accessToken)
         throw Error(`${accessToken} is not a valid access token`)
-      var user
-      switch (provider) {
+
+      const providerName = getProvider()
+      const config = getProviderConfig(providerName)
+
+      let user
+      switch (providerName) {
         case 'github':
           try {
-            const response = await fetch(sails.config.wish[provider].userUrl, {
+            const response = await fetch(config.userUrl, {
               headers: {
                 Authorization: `token ${accessToken}`,
               },
@@ -146,7 +179,7 @@ module.exports = function defineWishHook(sails) {
           if (!idToken) throw Error(`${idToken} is not a valid id_token`)
           try {
             const response = await fetch(
-              `${sails.config.wish[provider].userUrl}&access_token=${accessToken}`,
+              `${config.userUrl}&access_token=${accessToken}`,
               {
                 headers: {
                   Authorization: `Bearer ${idToken}`,
@@ -161,26 +194,24 @@ module.exports = function defineWishHook(sails) {
       }
       return user
     },
+
     /**
-     *
+     * Exchange authorization code for user info
      * @param {string} code
-     * @returns {Promise} user
+     * @returns {Promise<Object>} user
      */
     user: async function (code) {
       if (!code) throw Error(`${code} is not a valid code`)
 
-      var user
-      const clientId = sails.config[provider]
-        ? sails.config[provider].clientId
-        : sails.config.custom[provider].clientId
-      const clientSecret = sails.config[provider]
-        ? sails.config[provider].clientSecret
-        : sails.config.custom[provider].clientSecret
-      switch (provider) {
+      const providerName = getProvider()
+      const config = getProviderConfig(providerName)
+
+      let user
+      switch (providerName) {
         case 'github':
           try {
             const tokenResponse = await fetch(
-              `${sails.config.wish[provider].tokenUrl}?client_id=${clientId}&client_secret=${clientSecret}&code=${code}`,
+              `${config.tokenUrl}?client_id=${config.clientId}&client_secret=${config.clientSecret}&code=${code}`,
               {
                 method: 'POST',
                 headers: {
@@ -199,25 +230,20 @@ module.exports = function defineWishHook(sails) {
         case 'google':
           const queryParams = {
             code,
-            client_id: clientId,
-            client_secret: clientSecret,
-            redirect_uri: sails.config[provider]
-              ? sails.config[provider].redirect
-              : sails.config.custom[provider].redirect,
+            client_id: config.clientId,
+            client_secret: config.clientSecret,
+            redirect_uri: config.redirect,
             grant_type: 'authorization_code',
           }
           const qs = new URLSearchParams(queryParams)
 
           try {
-            const tokenResponse = await fetch(
-              `${sails.config.wish[provider].tokenUrl}?${qs}`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/x-www-form-urlencoded',
-                },
-              }
-            )
+            const tokenResponse = await fetch(`${config.tokenUrl}?${qs}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+            })
             const tokenData = await tokenResponse.json()
             const { access_token: accessToken, id_token: idToken } = tokenData
             user = await this.userFromToken({ accessToken, idToken })
@@ -226,7 +252,6 @@ module.exports = function defineWishHook(sails) {
           } catch (error) {
             throw error
           }
-        default:
           break
       }
       return user

@@ -9,11 +9,13 @@ wish is the OAuth Sails hook you wish(pun intended) exists for Sails. wish provi
 
 ## Installation
 
-In your Sails project run the below command to install wish and it's `node-fetch` peer-dependency:
+In your Sails project run the below command to install wish:
 
 ```sh
-npm i --save sails-hook-wish @sailscasts/sails-hook-node-fetch
+npm i sails-hook-wish
 ```
+
+> **Note:** This package requires Node.js 18+ as it uses native `fetch`.
 
 ## GitHub
 

@@ -1,6 +1,6 @@
 {
   "name": "sails-hook-wish",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "The OAuth hook you wish exists for Sails",
   "main": "index.js",
   "keywords": [
@@ -25,8 +25,10 @@
     "prettier": "^2.6.2"
   },
   "peerDependencies": {
-    "@sailscasts/sails-hook-node-fetch": "^0.0.3",
     "sails": "^1.5.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "repository": {
     "type": "git",

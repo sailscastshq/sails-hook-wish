@@ -132,14 +132,12 @@ module.exports = function defineWishHook(sails) {
       switch (provider) {
         case 'github':
           try {
-            user = await sails.helpers.fetch(
-              sails.config.wish[provider].userUrl,
-              {
-                headers: {
-                  Authorization: `token ${accessToken}`,
-                },
-              }
-            )
+            const response = await fetch(sails.config.wish[provider].userUrl, {
+              headers: {
+                Authorization: `token ${accessToken}`,
+              },
+            })
+            user = await response.json()
           } catch (error) {
             throw error
           }
@@ -147,7 +145,7 @@ module.exports = function defineWishHook(sails) {
         case 'google':
           if (!idToken) throw Error(`${idToken} is not a valid id_token`)
           try {
-            user = await sails.helpers.fetch(
+            const response = await fetch(
               `${sails.config.wish[provider].userUrl}&access_token=${accessToken}`,
               {
                 headers: {
@@ -155,6 +153,7 @@ module.exports = function defineWishHook(sails) {
                 },
               }
             )
+            user = await response.json()
           } catch (error) {
             throw error
           }
@@ -180,7 +179,7 @@ module.exports = function defineWishHook(sails) {
       switch (provider) {
         case 'github':
           try {
-            const response = await sails.helpers.fetch(
+            const tokenResponse = await fetch(
               `${sails.config.wish[provider].tokenUrl}?client_id=${clientId}&client_secret=${clientSecret}&code=${code}`,
               {
                 method: 'POST',
@@ -189,7 +188,8 @@ module.exports = function defineWishHook(sails) {
                 },
               }
             )
-            const { access_token: accessToken } = response
+            const tokenData = await tokenResponse.json()
+            const { access_token: accessToken } = tokenData
             user = await this.userFromToken({ accessToken })
             user.accessToken = accessToken
           } catch (error) {
@@ -209,17 +209,17 @@ module.exports = function defineWishHook(sails) {
           const qs = new URLSearchParams(queryParams)
 
           try {
-            const response = await sails.helpers.fetch(
+            const tokenResponse = await fetch(
               `${sails.config.wish[provider].tokenUrl}?${qs}`,
               {
                 method: 'POST',
                 headers: {
-                  'Content-Type': 'application/x-www-from-urlencoded',
+                  'Content-Type': 'application/x-www-form-urlencoded',
                 },
               }
             )
-
-            const { access_token: accessToken, id_token: idToken } = response
+            const tokenData = await tokenResponse.json()
+            const { access_token: accessToken, id_token: idToken } = tokenData
             user = await this.userFromToken({ accessToken, idToken })
             user.accessToken = accessToken
             user.idToken = idToken

@@ -1,28 +1,3 @@
-/** @typedef {'github' | 'google'} Provider */
-/**
- * @typedef {Object} WishConfig
- * @property {Provider} [provider] - Default provider for single-provider apps
- * @property {Object} providers - Provider configurations
- * @property {WishProviderConfig} [github] - GitHub credentials (from local.js)
- * @property {WishProviderConfig} [google] - Google credentials (from local.js)
- */
-
-/**
- * @typedef {Object} WishProviderConfig
- * @property {string} clientId
- * @property {string} clientSecret
- * @property {string} redirect
- * @property {string[]} [scopes]
- */
-
-/**
- * @typedef {Object} WishProviderDefaults
- * @property {string} scopeSeparator
- * @property {string[]} scopes
- * @property {string} tokenUrl
- * @property {string} userUrl
- */
-
 /**
  * wish hook
  *
@@ -31,22 +6,52 @@
  */
 
 module.exports = function defineWishHook(sails) {
-  /**
-   * @type {Provider}
-   */
-  let currentProvider
+  let currentProviderKey
+
+  const supportedTypes = ['github', 'google']
 
   /**
-   * @type {Provider[]}
+   * Environment variable mappings for each provider type
    */
-  const supportedProviders = ['github', 'google']
+  const envVarMappings = {
+    github: {
+      clientId: 'GITHUB_CLIENT_ID',
+      clientSecret: 'GITHUB_CLIENT_SECRET',
+      redirect: 'GITHUB_CALLBACK_URL',
+    },
+    google: {
+      clientId: 'GOOGLE_CLIENT_ID',
+      clientSecret: 'GOOGLE_CLIENT_SECRET',
+      redirect: 'GOOGLE_CALLBACK_URL',
+    },
+  }
 
   /**
-   * Get the active provider (explicitly set or default from config)
-   * @returns {Provider}
+   * Default configurations for each provider type
    */
-  function getProvider() {
-    if (currentProvider) return currentProvider
+  const providerDefaults = {
+    github: {
+      scopeSeparator: ',',
+      scopes: ['user:email'],
+      tokenUrl: 'https://github.com/login/oauth/access_token',
+      userUrl: 'https://api.github.com/user',
+    },
+    google: {
+      scopeSeparator: ' ',
+      scopes: [
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/userinfo.email',
+      ],
+      tokenUrl: 'https://oauth2.googleapis.com/token',
+      userUrl: 'https://www.googleapis.com/oauth2/v2/userinfo?alt=json',
+    },
+  }
+
+  /**
+   * Get the active provider key (explicitly set or default from config)
+   */
+  function getProviderKey() {
+    if (currentProviderKey) return currentProviderKey
     if (sails.config.wish.provider) return sails.config.wish.provider
     throw Error(
       'No provider specified. Either set a default provider in config/wish.js or call .provider() first.'
@@ -54,14 +59,66 @@ module.exports = function defineWishHook(sails) {
   }
 
   /**
-   * Get provider configuration (merged from defaults and user config)
-   * @param {Provider} providerName
-   * @returns {Object}
+   * Get provider type from key (uses 'type' property or infers from key name)
    */
-  function getProviderConfig(providerName) {
-    const defaults = sails.config.wish.providers[providerName]
-    const credentials = sails.config.wish[providerName] || {}
-    return { ...defaults, ...credentials }
+  function getProviderType(providerKey) {
+    const providerConfig = sails.config.wish.providers?.[providerKey] || {}
+
+    // If type is explicitly set, use it
+    if (providerConfig.type) {
+      if (!supportedTypes.includes(providerConfig.type)) {
+        throw Error(
+          `'${
+            providerConfig.type
+          }' is not a supported provider type. Supported types are: ${supportedTypes.join(
+            ', '
+          )}`
+        )
+      }
+      return providerConfig.type
+    }
+
+    // Otherwise, infer from key name
+    if (supportedTypes.includes(providerKey)) {
+      return providerKey
+    }
+
+    throw Error(
+      `Cannot infer provider type from key '${providerKey}'. Either use a supported key name (${supportedTypes.join(
+        ', '
+      )}) or specify 'type' in the provider config.`
+    )
+  }
+
+  /**
+   * Get provider configuration (merged from defaults, env vars, and user config)
+   */
+  function getProviderConfig(providerKey) {
+    const providerType = getProviderType(providerKey)
+    const defaults = providerDefaults[providerType]
+    const envMapping = envVarMappings[providerType]
+    const userConfig = sails.config.wish.providers?.[providerKey] || {}
+
+    // Build config with fallbacks: user config > env vars > defaults
+    const config = { ...defaults }
+
+    // Apply environment variable fallbacks
+    if (envMapping) {
+      if (process.env[envMapping.clientId]) {
+        config.clientId = process.env[envMapping.clientId]
+      }
+      if (process.env[envMapping.clientSecret]) {
+        config.clientSecret = process.env[envMapping.clientSecret]
+      }
+      if (process.env[envMapping.redirect]) {
+        config.redirect = process.env[envMapping.redirect]
+      }
+    }
+
+    // Apply user config (overrides env vars and defaults)
+    Object.assign(config, userConfig)
+
+    return config
   }
 
   return {
@@ -69,31 +126,12 @@ module.exports = function defineWishHook(sails) {
      * Runs when this Sails app loads/lifts.
      */
     defaults: {
-      /**
-       * @type {WishConfig}
-       */
       wish: {
-        // Default provider (optional) - set in config/wish.js for single-provider apps
+        // Default provider key (optional) - set in config/wish.js for single-provider apps
         provider: undefined,
 
-        // Provider defaults with sensible configurations
-        providers: {
-          github: {
-            scopeSeparator: ',',
-            scopes: ['user:email'],
-            tokenUrl: 'https://github.com/login/oauth/access_token',
-            userUrl: 'https://api.github.com/user',
-          },
-          google: {
-            scopeSeparator: ' ',
-            scopes: [
-              'https://www.googleapis.com/auth/userinfo.profile',
-              'https://www.googleapis.com/auth/userinfo.email',
-            ],
-            tokenUrl: 'https://oauth2.googleapis.com/token',
-            userUrl: 'https://www.googleapis.com/oauth2/v2/userinfo?alt=json',
-          },
-        },
+        // Provider configurations
+        providers: {},
       },
     },
 
@@ -104,17 +142,13 @@ module.exports = function defineWishHook(sails) {
 
     /**
      * Set the OAuth provider for chained calls
-     * @param {Provider} value
+     * @param {string} providerKey - The provider key (e.g., 'github', 'google', or custom key)
      * @returns {Object} wish
      */
-    provider: function (value) {
-      if (!supportedProviders.includes(value))
-        throw Error(
-          `${value} is not a supported provider. Supported providers are ${supportedProviders.join(
-            ', '
-          )}`
-        )
-      currentProvider = value
+    provider: function (providerKey) {
+      // Validate that we can resolve this provider
+      getProviderType(providerKey)
+      currentProviderKey = providerKey
       return this
     },
 
@@ -123,11 +157,12 @@ module.exports = function defineWishHook(sails) {
      * @returns {string} redirectUrl
      */
     redirect: function () {
-      const providerName = getProvider()
-      const config = getProviderConfig(providerName)
+      const providerKey = getProviderKey()
+      const providerType = getProviderType(providerKey)
+      const config = getProviderConfig(providerKey)
 
       let redirectUrl
-      switch (providerName) {
+      switch (providerType) {
         case 'github':
           const githubScope = config.scopes.join(config.scopeSeparator)
           redirectUrl = `https://github.com/login/oauth/authorize?scope=${githubScope}&client_id=${config.clientId}`
@@ -158,11 +193,12 @@ module.exports = function defineWishHook(sails) {
       if (!accessToken)
         throw Error(`${accessToken} is not a valid access token`)
 
-      const providerName = getProvider()
-      const config = getProviderConfig(providerName)
+      const providerKey = getProviderKey()
+      const providerType = getProviderType(providerKey)
+      const config = getProviderConfig(providerKey)
 
       let user
-      switch (providerName) {
+      switch (providerType) {
         case 'github':
           try {
             const response = await fetch(config.userUrl, {
@@ -203,11 +239,12 @@ module.exports = function defineWishHook(sails) {
     user: async function (code) {
       if (!code) throw Error(`${code} is not a valid code`)
 
-      const providerName = getProvider()
-      const config = getProviderConfig(providerName)
+      const providerKey = getProviderKey()
+      const providerType = getProviderType(providerKey)
+      const config = getProviderConfig(providerKey)
 
       let user
-      switch (providerName) {
+      switch (providerType) {
         case 'github':
           try {
             const tokenResponse = await fetch(
@@ -219,7 +256,7 @@ module.exports = function defineWishHook(sails) {
                 },
               }
             )
-            const tokenData = await tokenResponse.json()
+            const tokenData = /** @type {any} */ (await tokenResponse.json())
             const { access_token: accessToken } = tokenData
             user = await this.userFromToken({ accessToken })
             user.accessToken = accessToken
@@ -244,7 +281,7 @@ module.exports = function defineWishHook(sails) {
                 'Content-Type': 'application/x-www-form-urlencoded',
               },
             })
-            const tokenData = await tokenResponse.json()
+            const tokenData = /** @type {any} */ (await tokenResponse.json())
             const { access_token: accessToken, id_token: idToken } = tokenData
             user = await this.userFromToken({ accessToken, idToken })
             user.accessToken = accessToken

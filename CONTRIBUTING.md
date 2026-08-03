@@ -33,7 +33,7 @@ To contribute to wish, follow these steps:
 
 ### Branch Organization
 
-At The Boring JavaScript Stack, we use the [Gitflow branching model](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow) where we use a `develop` branch as the main branch for active development. Therefore, all Pull Requests should be directed towards the `develop` branch instead of the `main` branch. This helps us maintain a stable `main` branch while allowing continuous development on the `develop` branch.
+We use the Git Vibe workflow. `main` is the only long-lived branch and should always remain deployable. Create every work branch from `main`, name it with the `feat/` prefix, and direct every Pull Request to `main`.
 
 ### Good First Issue
 
@@ -44,7 +44,7 @@ If you're new to our project, we recommend starting with the [_Good first issue_
 To ensure a smooth review process, please follow these guidelines:
 
 - Fork (https://help.github.com/articles/fork-a-repo) the repository into your own account.
-- In your forked repository, create a new branch: `git checkout -b my-branch develop`
+- In your forked repository, create a new branch from `main`: `git switch -c feat/my-branch main`
 - Make your changes/fixes.
 - Commit your code with a good commit message [using "Conventionalcommits"](https://www.conventionalcommits.org/en/v1.0.0/).
 - Push your branch to GitHub: `git push origin my-branch`

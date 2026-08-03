@@ -1,4 +1,0 @@
-[vibe]
-baseBranch = "main"
-mode = "worktree"
-deleteRemoteOnFinish = true

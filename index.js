@@ -31,9 +31,12 @@ module.exports = function defineWishHook(sails) {
    */
   const providerDefaults = {
     github: {
+      apiVersion: '2026-03-10',
+      emailsUrl: 'https://api.github.com/user/emails',
       scopeSeparator: ',',
       scopes: ['user:email'],
       tokenUrl: 'https://github.com/login/oauth/access_token',
+      userAgent: 'sails-hook-wish',
       userUrl: 'https://api.github.com/user',
     },
     google: {
@@ -121,6 +124,85 @@ module.exports = function defineWishHook(sails) {
     return config
   }
 
+  /**
+   * Build the headers GitHub recommends for authenticated REST API requests.
+   */
+  function getGithubHeaders(accessToken, config) {
+    const headers = {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${accessToken}`,
+      'User-Agent': config.userAgent,
+    }
+
+    if (config.apiVersion) {
+      headers['X-GitHub-Api-Version'] = config.apiVersion
+    }
+
+    return headers
+  }
+
+  /**
+   * Request and parse one GitHub identity resource.
+   */
+  async function fetchGithubResource({ accessToken, config, resource, url }) {
+    let response
+
+    try {
+      response = await fetch(url, {
+        headers: getGithubHeaders(accessToken, config),
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      throw Error(
+        `GitHub provider request for ${resource} failed: ${message}`,
+        { cause: error }
+      )
+    }
+
+    if (!response.ok) {
+      const status = [response.status, response.statusText]
+        .filter(Boolean)
+        .join(' ')
+      throw Error(
+        `GitHub provider request for ${resource} failed with ${status}.`
+      )
+    }
+
+    try {
+      return await response.json()
+    } catch (error) {
+      throw Error(
+        `GitHub provider returned an invalid response for ${resource}.`,
+        { cause: error }
+      )
+    }
+  }
+
+  /**
+   * Select a verified GitHub identity email without exposing the full list.
+   */
+  function selectGithubEmail(emails) {
+    if (!Array.isArray(emails)) {
+      throw Error('GitHub provider returned an invalid email address list.')
+    }
+
+    const isVerifiedEmail = (entry) =>
+      entry?.verified === true &&
+      typeof entry.email === 'string' &&
+      entry.email.length > 0
+
+    const selectedEmail =
+      emails.find(
+        (entry) => isVerifiedEmail(entry) && entry.primary === true
+      ) || emails.find(isVerifiedEmail)
+
+    if (!selectedEmail) {
+      throw Error('GitHub provider returned no verified email address.')
+    }
+
+    return selectedEmail.email
+  }
+
   return {
     /**
      * Runs when this Sails app loads/lifts.
@@ -200,16 +282,26 @@ module.exports = function defineWishHook(sails) {
       let user
       switch (providerType) {
         case 'github':
-          try {
-            const response = await fetch(config.userUrl, {
-              headers: {
-                Authorization: `token ${accessToken}`,
-              },
-            })
-            user = await response.json()
-          } catch (error) {
-            throw error
+          user = await fetchGithubResource({
+            accessToken,
+            config,
+            resource: 'profile',
+            url: config.userUrl,
+          })
+
+          if (!user || typeof user !== 'object' || Array.isArray(user)) {
+            throw Error('GitHub provider returned an invalid profile.')
           }
+
+          user.email = selectGithubEmail(
+            await fetchGithubResource({
+              accessToken,
+              config,
+              resource: 'email addresses',
+              url: config.emailsUrl,
+            })
+          )
+          user.emailVerified = true
           break
         case 'google':
           if (!idToken) throw Error(`${idToken} is not a valid id_token`)

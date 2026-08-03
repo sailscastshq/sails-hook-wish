@@ -36,10 +36,12 @@ Then add your credentials in `config/local.js` (for development) or via environm
 // config/local.js
 module.exports = {
   wish: {
-    github: {
-      clientId: 'your-client-id',
-      clientSecret: 'your-client-secret',
-      redirect: 'http://localhost:1337/auth/callback',
+    providers: {
+      github: {
+        clientId: 'your-client-id',
+        clientSecret: 'your-client-secret',
+        redirect: 'http://localhost:1337/auth/callback',
+      },
     },
   },
 }
@@ -59,10 +61,12 @@ For production, use environment variables. Wish recognizes these common conventi
 ```js
 // config/custom.js (production)
 module.exports.wish = {
-  github: {
-    clientId: process.env.GITHUB_CLIENT_ID,
-    clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    redirect: 'https://example.com/auth/callback',
+  providers: {
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      redirect: 'https://example.com/auth/callback',
+    },
   },
 }
 ```
@@ -75,14 +79,36 @@ To set up GitHub OAuth for your app, get your `clientId` and `clientSecret` cred
 // config/local.js
 module.exports = {
   wish: {
-    github: {
-      clientId: 'CLIENT_ID',
-      clientSecret: 'CLIENT_SECRET',
-      redirect: 'http://localhost:1337/auth/callback',
+    providers: {
+      github: {
+        clientId: 'CLIENT_ID',
+        clientSecret: 'CLIENT_SECRET',
+        redirect: 'http://localhost:1337/auth/callback',
+
+        // Optional overrides:
+        // userUrl: 'https://api.github.com/user',
+        // emailsUrl: 'https://api.github.com/user/emails',
+        // apiVersion: '2026-03-10',
+        // userAgent: 'my-sails-app',
+      },
     },
   },
 }
 ```
+
+### Returned GitHub user
+
+Both `user(code)` and `userFromToken({ accessToken })` return GitHub's authenticated [`GET /user`](https://docs.github.com/en/rest/users/users#get-the-authenticated-user) profile with these identity fields normalized by Wish:
+
+| Field           | Behavior                                                                                             |
+| --------------- | ---------------------------------------------------------------------------------------------------- |
+| `email`         | The verified primary email from GitHub, or the first verified email when no verified primary exists. |
+| `emailVerified` | Always `true`; Wish throws instead of returning an unverified or missing identity email.             |
+| `accessToken`   | Added by `user(code)` after the authorization-code exchange.                                         |
+
+All other GitHub profile properties, such as `id`, `login`, `name`, and `avatar_url`, remain available. Wish requests the private email list using the configured `user:email` scope, keeps only the selected identity email, and never returns the complete list. If GitHub's profile or email request fails, or the account has no verified email, Wish throws a GitHub provider error.
+
+The email endpoint defaults to `https://api.github.com/user/emails` and can be changed with `providers.github.emailsUrl`.
 
 ### The redirect
 
@@ -211,10 +237,12 @@ To set up Google OAuth for your app, get your `clientId` and `clientSecret` cred
 // config/local.js
 module.exports = {
   wish: {
-    google: {
-      clientId: 'CLIENT_ID',
-      clientSecret: 'CLIENT_SECRET',
-      redirect: 'http://localhost:1337/auth/callback',
+    providers: {
+      google: {
+        clientId: 'CLIENT_ID',
+        clientSecret: 'CLIENT_SECRET',
+        redirect: 'http://localhost:1337/auth/callback',
+      },
     },
   },
 }
